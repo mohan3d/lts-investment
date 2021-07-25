@@ -1,7 +1,8 @@
 from pprint import pprint
 import finviz
-from provider import get_stock_info_provider
+from provider import get_stock_info_provider, MorningstarProvider
 import yfinance as yf
+
 
 from provider import get_stock_info_provider
 from analyzer import get_intrinsic_value_calculator
@@ -49,20 +50,36 @@ if __name__ == '__main__':
     #     except Exception as e:
     #         print("{}: {}".format(ticker, e))
 
-    # ticker = 'MSFT'
-    # p = get_stock_info_provider(ticker)
-    # a = get_intrinsic_value_calculator(ticker, p)
+    ticker = 'NVDA'
+    ticker = 'THO'
+    p = get_stock_info_provider(ticker)
+    a = get_intrinsic_value_calculator(ticker, p)
     # print(a.operating_cash_flow_projected)
     # print(a.intrinsic_value_before_cash_debt)
     # print(a.less_debt_per_share)
     # print(a.plus_cash_per_share)
     # print(a.final_intrinsic_value_per_share)
-    #
+
     # print(p.operating_cashflow)
+
+    # import morningstar_stmt as ms
+    # from morningstar_stmt import tickerlist as tl
+    #
+    # ms.download_stmt(tl.all)
 
     from client import MorningstarClient
 
     c = MorningstarClient('MSFT')
-    print(c.balance_sheet())
+    cashflow = c.cash_flow()
+    print(cashflow.loc['Cash Generated from Operating Activities'])
 
+    balancesheet = c.balance_sheet(quarterly=True)
+    print(balancesheet.loc['Cash, Cash Equivalents and Short Term Investments'])
 
+    print(balancesheet.loc['Current Debt and Capital Lease Obligation'])
+    print(balancesheet.loc['Long Term Debt'])
+
+    mp = MorningstarProvider('MSFT')
+    print(mp.operating_cashflow)
+    print(mp.total_cash)
+    print(mp.total_debt)

@@ -4,6 +4,7 @@ import functools
 
 import finviz
 import yfinance
+from client import MorningstarClient
 
 from .utils import to_million, from_any_to_million, first_valid_index, last_valid_index
 
@@ -138,6 +139,59 @@ class YahooProvider(StockInfoProvider):
             self._get_or_default(balancesheet, 'Short Long Term Debt', default=0.0, index_selection=first_valid_index)
 
         return to_million(debt)
+
+
+class MorningstarProvider(StockInfoProvider):
+    def __init__(self, ticker: str):
+        super().__init__(ticker)
+        self._client = MorningstarClient(ticker)
+
+    @functools.cached_property
+    def _raw_cashflow(self):
+        return self._client.cash_flow()
+
+    @functools.cached_property
+    def _raw_quarterly_balancesheet(self):
+        return self._client.balance_sheet(quarterly=True)
+
+    @property
+    def beta(self) -> float:
+        pass
+
+    @property
+    def total_shares(self) -> float:
+        pass
+
+    @property
+    def eps_next_5_years(self) -> float:
+        pass
+
+    @property
+    def previous_close(self) -> float:
+        pass
+
+    @property
+    def operating_cashflow(self) -> float:
+        key = 'Cash Generated from Operating Activities'
+
+        return self._get_or_default(self._raw_cashflow, key, index_selection=last_valid_index)
+
+    @property
+    def total_cash(self) -> float:
+        key = 'Cash, Cash Equivalents and Short Term Investments'
+
+        return self._get_or_default(self._raw_quarterly_balancesheet, key, index_selection=last_valid_index)
+
+    @property
+    def total_debt(self) -> float:
+        balancesheet = self._raw_quarterly_balancesheet
+        current_debt_key = 'Current Debt and Capital Lease Obligation'
+        long_term_debt_key = 'Long Term Debt'
+
+        debt = self._get_or_default(balancesheet, current_debt_key, index_selection=last_valid_index) + \
+               self._get_or_default(balancesheet, long_term_debt_key, index_selection=last_valid_index)
+
+        return debt
 
 
 class HybridProvider(StockInfoProvider):
