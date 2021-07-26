@@ -6,7 +6,7 @@ import finviz
 import yfinance
 
 from client import MorningstarClient
-from .utils import to_million, from_any_to_million, first_valid_index, last_valid_index
+from .utils import to_million, from_any_to_million, first_valid_index, last_valid_index, BILLION_TO_MILLION_RATE
 
 
 class StockInfoProvider:
@@ -187,13 +187,14 @@ class MorningstarProvider(StockInfoProvider):
     def operating_cashflow(self) -> float:
         key = 'Cash Generated from Operating Activities'
 
-        return self._get_or_default(self._raw_cashflow, key, index_selection=last_valid_index)
+        return BILLION_TO_MILLION_RATE * self._get_or_default(self._raw_cashflow, key, index_selection=last_valid_index)
 
     @property
     def total_cash(self) -> float:
         key = 'Cash, Cash Equivalents and Short Term Investments'
+        cash = self._get_or_default(self._raw_quarterly_balancesheet, key, index_selection=last_valid_index)
 
-        return self._get_or_default(self._raw_quarterly_balancesheet, key, index_selection=last_valid_index)
+        return BILLION_TO_MILLION_RATE * cash
 
     @property
     def total_debt(self) -> float:
@@ -204,7 +205,7 @@ class MorningstarProvider(StockInfoProvider):
         debt = self._get_or_default(balancesheet, current_debt_key, index_selection=last_valid_index) + \
                self._get_or_default(balancesheet, long_term_debt_key, index_selection=last_valid_index)
 
-        return debt
+        return BILLION_TO_MILLION_RATE * debt
 
 
 class HybridProvider(StockInfoProvider):
