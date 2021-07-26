@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+
 import functools
 from enum import Enum
 
@@ -7,7 +8,14 @@ import requests
 
 from models import KeyRatios, ShortInterest, Quote
 
-MORNING_STAR_API = 'lstzFDEOhfFNMLikKa0am9mgEKLBl49T'
+MORNING_STAR_API_KEY = 'lstzFDEOhfFNMLikKa0am9mgEKLBl49T'
+MORNING_STAR_REALTIME_API_KEY = 'eyJlbmMiOiJBMTI4R0NNIiwiYWxnIjoiUlNBLU9BRVAifQ.XmuAS3x5r-0MJuwLDdD4jNC6zjsY7HAFNo' \
+                                '2VdvGg6jGcj4hZ4NaJgH20ez313H8An9UJrsUj8ERH0R8UyjQu2UGMUnJ5B1ooXFPla0LQEbN_Em3-IG8' \
+                                '4YPFcWVmEgcs1Fl2jjlKHVqZp04D21UvtgQ4xyPwQ-QDdTxHqyvSCpcE.ACRnQsNuTh1K_C9R.xpLNZ8C' \
+                                'c9faKoOYhss1CD0A4hG4m0M7-LZQ0fISw7NUHwzQs2AEo9ZXfwOvAj1fCbcE96mbKQo8gr7Oq1a2-piYX' \
+                                'M1X5yNMcCxEaYyGinpnf6PGqbdr6zbYZdqyJk0KrxWVhKSQchLJaLGJOts4GlpqujSqJObJQcWWbkJQYK' \
+                                'G9K7oKsdtMAKsHIVo5-0BCUbjKVnHJNsYwTsI7xn2Om8zGm4A.nBOuiEDssVFHC_N68tDjVA'
+
 BASE_API_URL = 'https://api-global.morningstar.com/sal-service/v1/stock/newfinancials'
 STOCK_ID_URL = 'https://www.morningstar.com/api/v1/search/entities?q={}&limit=1&autocomplete=false'
 
@@ -20,7 +28,8 @@ class QueryType(Enum):
 
 def get_headers(additional_headers: dict = None) -> dict:
     headers = {
-        'apikey': MORNING_STAR_API,
+        'apikey': MORNING_STAR_API_KEY,
+        'x-api-realtime-e': MORNING_STAR_REALTIME_API_KEY,
         'accept': '*/*',
         'accept-encoding': 'gzip, deflate, br',
         'accept-language': 'en-US,en;q=0.9,ar;q=0.8',
@@ -54,8 +63,8 @@ def get_api_url(ticker: str, query_type: str) -> str:
     return '{}/{}/{}/detail'.format(BASE_API_URL, stock_id, query_type)
 
 
-def query_morningstar(url: str):
-    headers = get_headers()
+def query_morningstar(url: str, extra_headers=None):
+    headers = get_headers(extra_headers)
     return requests.get(url, headers=headers)
 
 
@@ -124,6 +133,15 @@ class MorningstarClient:
         :return:
         """
 
+        url = f'https://api-global.morningstar.com/sal-service/v1/stock/realTime/v3/{self._stock_id}/data?' \
+              f'secExchangeList=&random=0.5150951813158511&languageId=en&locale=en&clientId=MDC&benchmarkId=category&' \
+              f'component=sal-components-quote&version=3.49.0'
+
+        resp = query_morningstar(url)
+        data = resp.json()
+
+        return Quote.from_dict(data)
+
     def key_ratios(self) -> KeyRatios:
         url = f'https://api-global.morningstar.com/sal-service/v1/stock/keyStats/{self._stock_id}?languageId=en&' \
               f'locale=en&clientId=MDC&benchmarkId=category&component=sal-components-quote&version=3.49.0'
@@ -163,3 +181,4 @@ if __name__ == '__main__':
     c = MorningstarClient('MSFT')
     print(c.key_ratios())
     print(c.short_interest())
+    print(c.quote())

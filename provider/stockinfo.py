@@ -181,7 +181,7 @@ class MorningstarProvider(StockInfoProvider):
 
     @property
     def previous_close(self) -> float:
-        pass
+        return self._raw_quote.lastPrice
 
     @property
     def operating_cashflow(self) -> float:

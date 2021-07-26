@@ -2,7 +2,6 @@ from typing import get_type_hints
 
 
 def get_param(data: dict, name: str, _type: type):
-    # k = to_camel_case(name)
     k = name
     v = data.get(k)
 
@@ -38,33 +37,71 @@ class Response:
 class Quote(Response):
     def __init__(
             self,
-            starRating: float,
-            qualRating: float,
-            quantRating: float,
-            bestRatingType: str,
-            investmentStyle: int,
-            priceEarnings: float,
-            priceBook: float,
-            priceSale: float,
-            forwardPE: float,
-            forwardDivYield: float,
-            starRatingDate: str,
-            numberOfMonths: int,
-            beta: float
+            lastPrice: float,
+            bid: float,
+            bidSize: float,
+            ask: float,
+            askSize: float,
+            lotSize: float,
+            volume: float,
+            recentTradingDayOpenPrice: float,
+            dayRangeHigh: float,
+            dayRangeLow: float,
+            lastClose: float,
+            priceOfTradeAfter: float,
+            timeOfTradeAfter: str,
+            recentTradingDay: str,
+            lastUpdateTime: str,
+            recentTradingDayJulian: str,
+            tradingStatus: str,
+            marketCap: float,
+            dividendYield: float,
+            yearRangeHigh: float,
+            yearRangeLow: float,
+            avgVolume: float,
+            dayChange: float,
+            dayChangePer: float,
+            currencyCode: str,
+            currencySymbol: str,
+            listedCurrency: str,
+            exchangeID: str,
+            exchangeName: str,
+            exchangeTimeZone: str,
+            type: str,
+            ts: str
     ):
-        self.starRating = starRating
-        self.qualRating = qualRating
-        self.quantRating = quantRating
-        self.bestRatingType = bestRatingType
-        self.investmentStyle = investmentStyle
-        self.priceEarnings = priceEarnings
-        self.priceBook = priceBook
-        self.priceSale = priceSale
-        self.forwardPE = forwardPE
-        self.forwardDivYield = forwardDivYield
-        self.starRatingDate = starRatingDate
-        self.numberOfMonths = numberOfMonths
-        self.beta = beta
+        self.lastPrice = lastPrice
+        self.bid = bid
+        self.bidSize = bidSize
+        self.ask = ask
+        self.askSize = askSize
+        self.lotSize = lotSize
+        self.volume = volume
+        self.recentTradingDayOpenPrice = recentTradingDayOpenPrice
+        self.dayRangeHigh = dayRangeHigh
+        self.dayRangeLow = dayRangeLow
+        self.lastClose = lastClose
+        self.priceOfTradeAfter = priceOfTradeAfter
+        self.timeOfTradeAfter = timeOfTradeAfter
+        self.recentTradingDay = recentTradingDay
+        self.lastUpdateTime = lastUpdateTime
+        self.recentTradingDayJulian = recentTradingDayJulian
+        self.tradingStatus = tradingStatus
+        self.marketCap = marketCap
+        self.dividendYield = dividendYield
+        self.yearRangeHigh = yearRangeHigh
+        self.yearRangeLow = yearRangeLow
+        self.avgVolume = avgVolume
+        self.dayChange = dayChange
+        self.dayChangePer = dayChangePer
+        self.currencyCode = currencyCode
+        self.currencySymbol = currencySymbol
+        self.listedCurrency = listedCurrency
+        self.exchangeID = exchangeID
+        self.exchangeName = exchangeName
+        self.exchangeTimeZone = exchangeTimeZone
+        self.type = type
+        self.ts = ts
 
 
 @auto_str
