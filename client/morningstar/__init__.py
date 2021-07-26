@@ -151,14 +151,3 @@ class MorningstarClient:
             url = url + '/data'
 
         return fetch_json(url)
-
-
-if __name__ == '__main__':
-    c = MorningstarClient('MSFT')
-    print(c.quote())
-    print(c.key_ratios())
-    print(c.short_interest())
-
-    print(c.income_statement())
-    print(c.balance_sheet(quarterly=True))
-    print(c.cash_flow())
