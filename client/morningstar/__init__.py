@@ -3,10 +3,10 @@ from __future__ import absolute_import
 import enum
 import functools
 
-import pandas
+import pandas as pd
 import requests
 
-from models import KeyRatios, ShortInterest, Quote
+from models import KeyRatios, ShortInterest, Quote, Response
 
 MORNING_STAR_API_KEY = 'lstzFDEOhfFNMLikKa0am9mgEKLBl49T'
 MORNING_STAR_X_API_KEY = 'Nrc2ElgzRkaTE43D5vA7mrWj2WpSBR35fvmaqfte'
@@ -17,7 +17,7 @@ MORNING_STAR_REALTIME_API_KEY = 'eyJlbmMiOiJBMTI4R0NNIiwiYWxnIjoiUlNBLU9BRVAifQ.
                                 'M1X5yNMcCxEaYyGinpnf6PGqbdr6zbYZdqyJk0KrxWVhKSQchLJaLGJOts4GlpqujSqJObJQcWWbkJQYK' \
                                 'G9K7oKsdtMAKsHIVo5-0BCUbjKVnHJNsYwTsI7xn2Om8zGm4A.nBOuiEDssVFHC_N68tDjVA'
 
-BASE_API_URL = 'https://api-global.morningstar.com/sal-service/v1/stock/newfinancials'
+BASE_API_URL = 'https://api-global.morningstar.com/sal-service/v1/stock'
 STOCK_ID_URL = 'https://www.morningstar.com/api/v1/search/entities?q={}&limit=1&autocomplete=false'
 
 
@@ -25,6 +25,10 @@ class QueryType(enum.Enum):
     INCOME_STATEMENT = 'incomeStatement'
     BALANCE_SHEET = 'balanceSheet'
     CASH_FLOW = 'cashFlow'
+
+    QUOTE = 'realTime/v3'
+    KEY_RATIOS = 'keyStats'
+    SHORT_INTEREST = 'shortInterest'
 
 
 def get_headers(additional_headers: dict = None) -> dict:
@@ -65,7 +69,7 @@ def get_entries(level):
             yield from get_entries(sub_level)
 
 
-def build_dataframe(data) -> pandas.DataFrame:
+def build_dataframe(data) -> pd.DataFrame:
     # TODO: refactor
     columns = data.get('columnDefs')
 
@@ -78,49 +82,39 @@ def build_dataframe(data) -> pandas.DataFrame:
             index.append(label)
             values.append(datum)
 
-    return pandas.DataFrame(data=values, index=index, columns=columns, dtype=pandas.Float32Dtype)
+    return pd.DataFrame(data=values, index=index, columns=columns, dtype=pd.Float32Dtype)
+
+
+def fetch_json(url: str, extra_headers: dict = None) -> dict:
+    headers = get_headers(extra_headers)
+    resp = requests.get(url, headers=headers)
+
+    return resp.json()
 
 
 class MorningstarClient:
     def __init__(self, ticker: str):
         self._ticker = ticker
 
-    def income_statement(self, quarterly=False, restated=False):
-        return self._fetch_dataframe(self._ticker, query_type=QueryType.INCOME_STATEMENT, quarterly=quarterly,
-                                     restated=restated)
+    def income_statement(self, quarterly=False, restated=False) -> pd.DataFrame:
+        return self._fetch_dataframe(query_type=QueryType.INCOME_STATEMENT, quarterly=quarterly, restated=restated)
 
-    def balance_sheet(self, quarterly=False, restated=False):
-        return self._fetch_dataframe(self._ticker, query_type=QueryType.BALANCE_SHEET, quarterly=quarterly,
-                                     restated=restated)
+    def balance_sheet(self, quarterly=False, restated=False) -> pd.DataFrame:
+        return self._fetch_dataframe(query_type=QueryType.BALANCE_SHEET, quarterly=quarterly, restated=restated)
 
-    def cash_flow(self, quarterly=False, restated=False):
-        return self._fetch_dataframe(self._ticker, query_type=QueryType.CASH_FLOW, quarterly=quarterly,
-                                     restated=restated)
+    def cash_flow(self, quarterly=False, restated=False) -> pd.DataFrame:
+        return self._fetch_dataframe(query_type=QueryType.CASH_FLOW, quarterly=quarterly, restated=restated)
 
     def quote(self) -> Quote:
-        """
-        https://api-global.morningstar.com/sal-service/v1/stock/realTime/v3/0P000003MH/data?secExchangeList=&random=
-        0.1532886868585801&languageId=en&locale=en&clientId=MDC&benchmarkId=category&component=sal-components-quote&version=3.49.0
-
-        :return:
-        """
-
-        url = f'https://api-global.morningstar.com/sal-service/v1/stock/realTime/v3/{self._stock_id}/data?' \
-              f'secExchangeList=&random=0.5150951813158511&languageId=en&locale=en&clientId=MDC&benchmarkId=category&' \
-              f'component=sal-components-quote&version=3.49.0'
-
-        data = self._fetch_json(url)
+        data = self._fetch_data(QueryType.QUOTE)
 
         return Quote.from_dict(data)
 
     def key_ratios(self) -> KeyRatios:
-        url = f'https://api-global.morningstar.com/sal-service/v1/stock/keyStats/{self._stock_id}?languageId=en&' \
-              f'locale=en&clientId=MDC&benchmarkId=category&component=sal-components-quote&version=3.49.0'
-
-        data = self._fetch_json(url)
-        results = dict()
+        data = self._fetch_data(QueryType.KEY_RATIOS)
 
         # TODO: refactor into a pythonic way (dict-comprehensions)
+        results = dict()
         for k, v in data.items():
             if 'freeCashFlow' != k:
                 results[k] = v['stockValue']
@@ -131,48 +125,40 @@ class MorningstarClient:
         return KeyRatios.from_dict(results)
 
     def short_interest(self) -> ShortInterest:
-        url = f'https://api-global.morningstar.com/sal-service/v1/stock/shortInterest/{self._stock_id}/data?' \
-              f'languageId=en&locale=en&clientId=MDC&benchmarkId=category&component=sal-components-short-interest&' \
-              f'version=3.49.0'
-
-        data = self._fetch_json(url)
+        data = self._fetch_data(QueryType.SHORT_INTEREST)
 
         return ShortInterest.from_dict(data)
 
     @functools.cached_property
     def _stock_id(self):
         url = STOCK_ID_URL.format(self._ticker)
-        data = self._fetch_json(url)
+        data = fetch_json(url)
         return data['results'][0]['id'].split('-')[-1]
 
-    def _fetch_dataframe(self, ticker: str, query_type: QueryType, quarterly: bool = False,
-                         restated: bool = False) -> pandas.DataFrame:
-        url = self._get_api_url(query_type.value) + '?' + get_query_string(
-            data_type='Q' if quarterly else 'A',
-            report_type='R' if restated else 'A',
-        )
+    def _fetch_dataframe(self, query_type: QueryType, quarterly: bool = False, restated: bool = False) -> pd.DataFrame:
+        querystring = get_query_string(data_type='Q' if quarterly else 'A', report_type='R' if restated else 'A')
+        url = f'{BASE_API_URL}/newfinancials/{self._stock_id}/{query_type.value}/detail?{querystring}'
 
-        data = self._fetch_json(url)
+        data = fetch_json(url)
 
         return build_dataframe(data)
 
-    def _fetch_json(self, url: str, extra_headers: dict = None) -> dict:
-        headers = get_headers(extra_headers)
-        return requests.get(url, headers=headers).json()
+    def _fetch_data(self, query_type: QueryType) -> dict:
+        url = f'{BASE_API_URL}/{query_type.value}/{self._stock_id}'
 
-    def _get_api_url(self, query_type: str) -> str:
-        return '{}/{}/{}/detail'.format(BASE_API_URL, self._stock_id, query_type)
+        # Append /data only if it is quote or short interest request.
+        if query_type in (QueryType.QUOTE, QueryType.SHORT_INTEREST):
+            url = url + '/data'
+
+        return fetch_json(url)
 
 
 if __name__ == '__main__':
-    """
-    https://api-global.morningstar.com/sal-service/v1/stock/header/v2/data/0P000003MH/securityInfo?showStarRating=&languageId=en&locale=en&clientId=MDC&benchmarkId=category&component=sal-components-quote&version=3.49.0
-
-    https://api-global.morningstar.com/sal-service/v1/stock/keyStats/0P000003MH?languageId=en&locale=en&clientId=MDC&benchmarkId=category&component=sal-components-quote&version=3.49.0
-    """
-
     c = MorningstarClient('MSFT')
+    print(c.quote())
     print(c.key_ratios())
     print(c.short_interest())
-    print(c.quote())
+
     print(c.income_statement())
+    print(c.balance_sheet(quarterly=True))
+    print(c.cash_flow())
