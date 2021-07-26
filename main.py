@@ -3,7 +3,6 @@ import finviz
 from provider import get_stock_info_provider, MorningstarProvider
 import yfinance as yf
 
-
 from provider import get_stock_info_provider
 from analyzer import get_intrinsic_value_calculator
 

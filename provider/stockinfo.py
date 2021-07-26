@@ -4,8 +4,8 @@ import functools
 
 import finviz
 import yfinance
-from client import MorningstarClient
 
+from client import MorningstarClient
 from .utils import to_million, from_any_to_million, first_valid_index, last_valid_index
 
 
@@ -135,8 +135,8 @@ class YahooProvider(StockInfoProvider):
     def total_debt(self) -> float:
         balancesheet = self._yahoo_finance.quarterly_balancesheet
         debt = \
-            self._get_or_default(balancesheet, 'Long Term Debt', default=0.0, index_selection=first_valid_index) + \
-            self._get_or_default(balancesheet, 'Short Long Term Debt', default=0.0, index_selection=first_valid_index)
+            self._get_or_default(balancesheet, 'Long Term Debt', index_selection=first_valid_index) + \
+            self._get_or_default(balancesheet, 'Short Long Term Debt', index_selection=first_valid_index)
 
         return to_million(debt)
 
@@ -154,17 +154,30 @@ class MorningstarProvider(StockInfoProvider):
     def _raw_quarterly_balancesheet(self):
         return self._client.balance_sheet(quarterly=True)
 
+    @functools.cached_property
+    def _raw_quote(self):
+        return self._client.quote()
+
+    @functools.cached_property
+    def _raw_short_interest(self):
+        return self._client.short_interest()
+
+    @functools.cached_property
+    def _raw_key_ratios(self):
+        return self._client.key_ratios()
+
     @property
     def beta(self) -> float:
-        pass
+        return self._raw_quote.beta
 
     @property
     def total_shares(self) -> float:
-        pass
+        return self._raw_short_interest.sharesOutstanding
 
     @property
     def eps_next_5_years(self) -> float:
-        pass
+        # Morning Star provides next 3 years, will be used instead.
+        return self._raw_key_ratios.revenue3YearGrowth
 
     @property
     def previous_close(self) -> float:
