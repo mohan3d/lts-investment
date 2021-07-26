@@ -170,15 +170,3 @@ class MorningstarClient:
 
         return ShortInterest.from_dict(data)
 
-
-if __name__ == '__main__':
-    """
-    https://api-global.morningstar.com/sal-service/v1/stock/header/v2/data/0P000003MH/securityInfo?showStarRating=&languageId=en&locale=en&clientId=MDC&benchmarkId=category&component=sal-components-quote&version=3.49.0
-    
-    https://api-global.morningstar.com/sal-service/v1/stock/keyStats/0P000003MH?languageId=en&locale=en&clientId=MDC&benchmarkId=category&component=sal-components-quote&version=3.49.0
-    """
-
-    c = MorningstarClient('MSFT')
-    print(c.key_ratios())
-    print(c.short_interest())
-    print(c.quote())
