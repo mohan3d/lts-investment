@@ -106,12 +106,6 @@ class MorningstarClient:
         return self._fetch_dataframe(query_type=QueryType.CASH_FLOW, quarterly=quarterly, restated=restated)
 
     def quote(self) -> Quote:
-        """
-        https://api-global.morningstar.com/sal-service/v1/stock/header/v2/data/0P000003MH/
-        securityInfo?showStarRating=&languageId=en&locale=en&clientId=MDC&benchmarkId=category&
-        component=sal-components-quote&version=3.49.0
-        :return:
-        """
         data1 = self._fetch_data(QueryType.QUOTE)
 
         # Beta and other security info data.
