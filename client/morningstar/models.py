@@ -68,7 +68,14 @@ class Quote(Response):
             exchangeName: str,
             exchangeTimeZone: str,
             type: str,
-            ts: str
+            ts: str,
+
+            priceEarnings: float,
+            priceBook: float,
+            priceSale: float,
+            forwardPE: float,
+            forwardDivYield: float,
+            beta: float,
     ):
         self.lastPrice = lastPrice
         self.bid = bid
@@ -102,6 +109,13 @@ class Quote(Response):
         self.exchangeTimeZone = exchangeTimeZone
         self.type = type
         self.ts = ts
+
+        self.priceEarnings = priceEarnings
+        self.priceBook = priceBook
+        self.priceSale = priceSale
+        self.forwardPE = forwardPE
+        self.forwardDivYield = forwardDivYield
+        self.beta = beta
 
 
 @auto_str

@@ -6,7 +6,7 @@ import functools
 import pandas as pd
 import requests
 
-from models import KeyRatios, ShortInterest, Quote, Response
+from .models import KeyRatios, ShortInterest, Quote, Response
 
 MORNING_STAR_API_KEY = 'lstzFDEOhfFNMLikKa0am9mgEKLBl49T'
 MORNING_STAR_X_API_KEY = 'Nrc2ElgzRkaTE43D5vA7mrWj2WpSBR35fvmaqfte'
@@ -106,9 +106,21 @@ class MorningstarClient:
         return self._fetch_dataframe(query_type=QueryType.CASH_FLOW, quarterly=quarterly, restated=restated)
 
     def quote(self) -> Quote:
-        data = self._fetch_data(QueryType.QUOTE)
+        """
+        https://api-global.morningstar.com/sal-service/v1/stock/header/v2/data/0P000003MH/
+        securityInfo?showStarRating=&languageId=en&locale=en&clientId=MDC&benchmarkId=category&
+        component=sal-components-quote&version=3.49.0
+        :return:
+        """
+        data1 = self._fetch_data(QueryType.QUOTE)
 
-        return Quote.from_dict(data)
+        # Beta and other security info data.
+        # Beta is nested inside returnStatistics entry.
+        url = f'{BASE_API_URL}/header/v2/data/{self._stock_id}/securityInfo'
+        data2 = fetch_json(url)
+        data2.update(data2.get('returnStatistics', {}))
+
+        return Quote.from_dict({**data1, **data2})
 
     def key_ratios(self) -> KeyRatios:
         data = self._fetch_data(QueryType.KEY_RATIOS)
